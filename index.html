@@ -51,7 +51,6 @@
 
         .footer-section { margin-top: 40px; font-size: 13px; clear: both; }
         
-        /* Estructura de Autorización Solicitada */
         .auth-block { margin-top: 50px; text-align: center; font-size: 15px; line-height: 1.6; }
         .auth-label { font-weight: bold; }
         .auth-name { font-weight: bold; text-transform: uppercase; }
@@ -75,8 +74,18 @@
                 print-color-adjust: exact; 
             }
             .form-input { border: none; }
-            thead th { background: #333 !important; color: white !important; -webkit-print-color-adjust: exact; }
-            .totals-table tr:last-child { background: #333 !important; color: white !important; -webkit-print-color-adjust: exact; }
+            thead th { 
+                background: #333 !important; 
+                color: white !important; 
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .totals-table tr:last-child { 
+                background: #333 !important; 
+                color: white !important; 
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
         }
     </style>
 </head>
@@ -101,18 +110,24 @@
             <div class="info-grid">
                 <div>
                     <div class="info-item"><strong>N° Orden:</strong> <input type="text" id="orden" class="form-input" style="font-weight:bold;" readonly></div>
+
                     <div class="info-item"><strong>Proveedor:</strong> <input type="text" id="proveedor" class="form-input" placeholder="Nombre del proveedor"></div>
+
+                    <div class="info-item"><strong>N° Cotización:</strong> <input type="text" id="cotizacion" class="form-input" placeholder="Número de cotización"></div>
                 </div>
+
                 <div>
                     <div class="info-item"><strong>Fecha:</strong> <input type="date" id="fecha" class="form-input"></div>
+
                     <div class="info-item"><strong>Departamento:</strong> <input type="text" id="departamento" class="form-input" value="REFACCIONES ORIENTE (REF)"></div>
-<div class="info-item">
-    <strong>Moneda:</strong>
-    <select id="moneda" class="form-input" onchange="calcular()">
-        <option value="MXN">Pesos MXN</option>
-        <option value="USD">Dólares USD</option>
-    </select>
-</div>
+
+                    <div class="info-item">
+                        <strong>Moneda:</strong>
+                        <select id="moneda" class="form-input" onchange="calcular()">
+                            <option value="MXN">Pesos MXN</option>
+                            <option value="USD">Dólares USD</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -174,17 +189,19 @@
 
         <div id="tab-historial" style="display:none;">
             <h2 class="title no-print">Historial</h2>
-           <div class="filters no-print">
-    <input type="text" id="f-prov" placeholder="Proveedor..." oninput="cargarHistorial()" class="form-input">
 
-    <button class="btn" onclick="limpiarFiltros()">
-        Limpiar
-    </button>
+            <div class="filters no-print">
+                <input type="text" id="f-prov" placeholder="Proveedor..." oninput="cargarHistorial()" class="form-input">
 
-    <button class="btn btn-save" onclick="exportarExcel()">
-        📥 Exportar Excel
-    </button>
-</div>
+                <button class="btn" onclick="limpiarFiltros()">
+                    Limpiar
+                </button>
+
+                <button class="btn btn-save" onclick="exportarExcel()">
+                    📥 Exportar Excel
+                </button>
+            </div>
+
             <table class="no-print">
                 <thead>
                     <tr>
@@ -209,39 +226,48 @@
             messagingSenderId: "477870129918",
             appId: "1:477870129918:web:f2caa0de529a8e41e9dbaf"
         };
+
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
         function fMoneda(v) {
-    const moneda = document.getElementById('moneda')?.value || 'MXN';
-    const simbolo = moneda === 'USD' ? 'US$ ' : '$ ';
+            const moneda = document.getElementById('moneda')?.value || 'MXN';
+            const simbolo = moneda === 'USD' ? 'US$ ' : '$ ';
 
-    return simbolo + parseFloat(v || 0).toLocaleString('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    });
-}
+            return simbolo + parseFloat(v || 0).toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
 
         async function generarFolio() {
             const snap = await db.collection("ordenes").orderBy("orden", "desc").limit(1).get();
+
             let num = 1;
+
             if (!snap.empty) {
                 const ult = snap.docs[0].data().orden;
                 num = parseInt(ult.split('OC-26')[1]) + 1;
             }
+
             document.getElementById('orden').value = `OC-26${num.toString().padStart(4, '0')}`;
         }
 
         function calcular() {
             let sub = 0;
+
             document.querySelectorAll('#items-body tr').forEach(fila => {
                 const c = parseFloat(fila.querySelector('.qty').value) || 0;
                 const p = parseFloat(fila.querySelector('.prc').value) || 0;
                 const t = c * p;
+
                 fila.querySelector('.tot').innerText = fMoneda(t);
+
                 sub += t;
             });
+
             const imp = sub * 0.16;
+
             document.getElementById('subtotal-val').innerText = fMoneda(sub);
             document.getElementById('impuesto-val').innerText = fMoneda(imp);
             document.getElementById('total-val').innerText = fMoneda(sub + imp);
@@ -249,6 +275,7 @@
 
         function agregarFila(d = null) {
             const tr = document.createElement('tr');
+
             tr.innerHTML = `
                 <td class="text-center"><input type="number" class="qty form-input text-center" value="${d ? d.cantidad : 1}" oninput="calcular()" style="width:60px"></td>
                 <td class="text-center"><input type="text" class="form-input text-center" value="${d ? d.unidad : 'Pieza'}" style="width:80px"></td>
@@ -257,12 +284,15 @@
                 <td class="text-right tot" style="font-weight:bold">${d ? fMoneda(d.total_linea) : '$ 0.00'}</td>
                 <td class="no-print text-center"><button onclick="this.closest('tr').remove();calcular()">❌</button></td>
             `;
+
             document.getElementById('items-body').appendChild(tr);
+
             calcular();
         }
 
         async function guardarOrden() {
             const items = [];
+
             document.querySelectorAll('#items-body tr').forEach(f => {
                 items.push({
                     cantidad: f.querySelector('.qty').value,
@@ -272,42 +302,65 @@
                     total_linea: (f.querySelector('.qty').value * f.querySelector('.prc').value)
                 });
             });
+
             const data = {
                 orden: document.getElementById('orden').value,
                 fecha: document.getElementById('fecha').value,
                 proveedor: document.getElementById('proveedor').value,
+                cotizacion: document.getElementById('cotizacion').value,
                 departamento: document.getElementById('departamento').value,
-		moneda: document.getElementById('moneda').value,
+                moneda: document.getElementById('moneda').value,
                 items: items,
                 subtotal: document.getElementById('subtotal-val').innerText,
                 impuesto: document.getElementById('impuesto-val').innerText,
                 total: document.getElementById('total-val').innerText,
                 direccion: document.getElementById('direccion').value
             };
+
             await db.collection("ordenes").add(data);
+
             alert("Orden Guardada");
+
             location.reload();
         }
 
         async function cargarHistorial() {
             const fil = document.getElementById('f-prov').value.toLowerCase();
+
             const snap = await db.collection("ordenes").orderBy("orden", "desc").get();
+
             const tbody = document.getElementById('lista-historial');
+
             tbody.innerHTML = '';
+
             snap.forEach(doc => {
                 const d = doc.data();
+
                 if (d.proveedor.toLowerCase().includes(fil)) {
                     const tr = document.createElement('tr');
-                    tr.innerHTML = `<td>${d.orden}</td><td>${d.fecha}</td><td>${d.proveedor}</td><td>${d.total}</td>
-                    <td><button class="btn btn-save" onclick='verPDF(${JSON.stringify(d)})'>👁️ Ver PDF</button></td>`;
+
+                    tr.innerHTML = `
+                        <td>${d.orden}</td>
+                        <td>${d.fecha}</td>
+                        <td>${d.proveedor}</td>
+                        <td>${d.total}</td>
+                        <td>
+                            <button class="btn btn-save" onclick='verPDF(${JSON.stringify(d)})'>
+                                👁️ Ver PDF
+                            </button>
+                        </td>
+                    `;
+
                     tbody.appendChild(tr);
                 }
             });
         }
 
         function verPDF(d) {
-	    document.getElementById('moneda').value = d.moneda || 'MXN';
+            document.getElementById('moneda').value = d.moneda || 'MXN';
+
             const win = window.open('', '_blank');
+
             const itemsRows = d.items.map(i => `
                 <tr>
                     <td style="text-align:center;">${i.cantidad}</td>
@@ -321,105 +374,288 @@
             win.document.write(`
                 <html>
                 <head>
+                    <title>${d.orden}</title>
+
                     <style>
-                        body { font-family: Arial; padding: 30px; line-height: 1.4; color: #333; }
-                        .header { display: flex; justify-content: space-between; border-bottom: 2px solid #333; padding-bottom: 10px; }
-                        .logo { height: 50px; }
-                        .title { text-align: center; text-transform: uppercase; font-size: 24px; margin: 20px 0; }
-                        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px; }
-                        th { background: #333; color: white; padding: 8px; }
-                        td { border-bottom: 1px solid #ddd; padding: 8px; }
-                        .totals-box { width: 35%; float: right; border: 1.5px solid #333; border-radius: 8px; margin-top: 20px; overflow: hidden; }
-                        .totals-box table tr:last-child { background: #333; color: white; font-weight: bold; }
-                        .footer { margin-top: 40px; font-size: 12px; }
-                        .auth-block { margin-top: 50px; text-align: center; font-size: 15px; line-height: 1.6; }
-                        .auth-label { font-weight: bold; }
-                        .auth-name { font-weight: bold; text-transform: uppercase; }
-                        .auth-role { font-size: 13px; color: #555; }
+                        body {
+                            font-family: Arial, sans-serif;
+                            padding: 30px;
+                            line-height: 1.4;
+                            color: #333;
+                        }
+
+                        .header {
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: flex-start;
+                            border-bottom: 2px solid #333;
+                            padding-bottom: 10px;
+                            margin-bottom: 20px;
+                        }
+
+                        .logo {
+                            max-height: 60px;
+                        }
+
+                        .title {
+                            text-align: center;
+                            font-size: 28px;
+                            font-weight: bold;
+                            margin: 20px 0;
+                            text-transform: uppercase;
+                        }
+
+                        table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-top: 20px;
+                            font-size: 13px;
+                        }
+
+                        thead th {
+                            background: #333 !important;
+                            color: white !important;
+                            padding: 10px;
+                            text-align: center;
+                            -webkit-print-color-adjust: exact;
+                            print-color-adjust: exact;
+                        }
+
+                        tbody td {
+                            padding: 8px;
+                            border-bottom: 1px solid #ddd;
+                        }
+
+                        .totals-box {
+                            width: 40%;
+                            float: right;
+                            margin-top: 20px;
+                            border: 1.5px solid #333;
+                            border-radius: 10px;
+                            overflow: hidden;
+                        }
+
+                        .totals-box table {
+                            margin-top: 0;
+                        }
+
+                        .totals-box td {
+                            padding: 8px 15px;
+                            border: none;
+                            font-size: 14px;
+                        }
+
+                        .totals-box table tr:last-child {
+                            background: #333 !important;
+                            color: white !important;
+                            font-weight: bold;
+                            -webkit-print-color-adjust: exact;
+                            print-color-adjust: exact;
+                        }
+
+                        .highlight-box {
+                            border-left: 4px solid #ccc;
+                            padding-left: 15px;
+                            margin: 20px 0;
+                            font-size: 14px;
+                        }
+
+                        .footer {
+                            margin-top: 40px;
+                            font-size: 13px;
+                            clear: both;
+                        }
+
+                        .auth-block {
+                            margin-top: 50px;
+                            text-align: center;
+                            font-size: 15px;
+                            line-height: 1.6;
+                        }
+
+                        .auth-label {
+                            font-weight: bold;
+                        }
+
+                        .auth-name {
+                            font-weight: bold;
+                            text-transform: uppercase;
+                        }
+
+                        .auth-role {
+                            font-size: 13px;
+                            color: #555;
+                        }
+
+                        @media print {
+                            thead th {
+                                background: #333 !important;
+                                color: white !important;
+                                -webkit-print-color-adjust: exact;
+                                print-color-adjust: exact;
+                            }
+
+                            .totals-box table tr:last-child {
+                                background: #333 !important;
+                                color: white !important;
+                                -webkit-print-color-adjust: exact;
+                                print-color-adjust: exact;
+                            }
+                        }
                     </style>
                 </head>
+
                 <body>
                     <div class="header">
                         <img src="ConcrePlus-Logotipo-768x307.png" class="logo">
-                        <div style="text-align:right"><strong>Concretera del Sureste</strong><br>CSU130213HAA</div>
+
+                        <div style="text-align:right">
+                            <strong>Concretera del Sureste</strong><br>
+                            CSU130213HAA
+                        </div>
                     </div>
+
                     <h1 class="title">Orden de Compra</h1>
+
                     <div style="display:flex; justify-content:space-between; font-size:14px;">
-                        <div><strong>N° Orden:</strong> ${d.orden}<br><strong>Proveedor:</strong> ${d.proveedor}</div>
-                        <div style="text-align:right;"><strong>Fecha:</strong> ${d.fecha}<br><strong>Departamento:</strong> ${d.departamento}</div>
+                        <div>
+                            <strong>N° Orden:</strong> ${d.orden}<br>
+                            <strong>Proveedor:</strong> ${d.proveedor}<br>
+                            <strong>N° Cotización:</strong> ${d.cotizacion || ''}
+                        </div>
+
+                        <div style="text-align:right;">
+                            <strong>Fecha:</strong> ${d.fecha}<br>
+                            <strong>Departamento:</strong> ${d.departamento}
+                        </div>
                     </div>
-                    <p style="font-size:14px; margin-top:20px;"><strong>Buen día,</strong> solicito su apoyo para surtir:</p>
+
+                    <p style="font-size: 14px;">
+                        <strong>Buen día,</strong> por medio de la presente le solicito su apoyo para surtir la orden de compra de los siguientes artículos:
+                    </p>
+
+                    <div class="highlight-box">
+                        <strong>Horario de entrega:</strong><br>
+                        Lunes a viernes de 9:00 am a 4:30 pm y Sábados de 9:00 am a 12:00 pm.
+                    </div>
+
                     <table>
-                        <thead><tr><th>Cant.</th><th>Unidad</th><th>Artículo</th><th>P. Unitario</th><th>Total</th></tr></thead>
-                        <tbody>${itemsRows}</tbody>
+                        <thead>
+                            <tr>
+                                <th>Cant.</th>
+                                <th>Unidad</th>
+                                <th>Artículo</th>
+                                <th>P. Unitario</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            ${itemsRows}
+                        </tbody>
                     </table>
+
                     <div class="totals-box">
                         <table>
-                            <tr><td style="text-align:center">Subtotal</td><td style="text-align:right">${d.subtotal}</td></tr>
-                            <tr><td style="text-align:center">Impuesto (16%)</td><td style="text-align:right">${d.impuesto}</td></tr>
-                            <tr><td style="text-align:center">Total</td><td style="text-align:right">${d.total}</td></tr>
+                            <tr>
+                                <td style="text-align:center">Subtotal</td>
+                                <td style="text-align:right">${d.subtotal}</td>
+                            </tr>
+
+                            <tr>
+                                <td style="text-align:center">Impuesto (16%)</td>
+                                <td style="text-align:right">${d.impuesto}</td>
+                            </tr>
+
+                            <tr>
+                                <td style="text-align:center">Total</td>
+                                <td style="text-align:right">${d.total}</td>
+                            </tr>
                         </table>
                     </div>
+
                     <div style="clear:both"></div>
-                    <div class="footer"><strong>Dirección de entrega:</strong> ${d.direccion}</div>
+
+                    <div class="footer">
+                        <strong>Dirección de entrega:</strong> ${d.direccion}
+                    </div>
+
                     <div class="auth-block">
                         <div class="auth-label">Autorizado por:</div>
                         <div class="auth-name">Luis Canul</div>
                         <div class="auth-role">Jefe de Mantenimiento</div>
                     </div>
-                    <script>window.onload = function() { window.print(); window.close(); };<\/script>
+
+                    <script>
+                        window.onload = function() {
+                            window.print();
+                            window.close();
+                        };
+                    <\/script>
                 </body>
                 </html>
             `);
+
             win.document.close();
         }
 
         function mostrarTab(n) {
             document.getElementById('tab-nueva').style.display = n === 0 ? 'block' : 'none';
+
             document.getElementById('tab-historial').style.display = n === 1 ? 'block' : 'none';
-            document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === n));
+
+            document.querySelectorAll('.tab').forEach((t, i) =>
+                t.classList.toggle('active', i === n)
+            );
+
             if (n === 1) cargarHistorial();
         }
 
-        function limpiarFiltros() { document.getElementById('f-prov').value = ''; cargarHistorial(); }
-	async function exportarExcel() {
+        function limpiarFiltros() {
+            document.getElementById('f-prov').value = '';
+            cargarHistorial();
+        }
 
-    const snap = await db.collection("ordenes")
-        .orderBy("orden", "desc")
-        .get();
+        async function exportarExcel() {
+            const snap = await db.collection("ordenes")
+                .orderBy("orden", "desc")
+                .get();
 
-    const datos = [];
+            const datos = [];
 
-    snap.forEach(doc => {
+            snap.forEach(doc => {
+                const d = doc.data();
 
-        const d = doc.data();
+                datos.push({
+                    "Orden": d.orden || '',
+                    "Fecha": d.fecha || '',
+                    "Proveedor": d.proveedor || '',
+                    "N° Cotización": d.cotizacion || '',
+                    "Departamento": d.departamento || '',
+                    "Moneda": d.moneda || 'MXN',
+                    "Subtotal": d.subtotal || '$ 0.00',
+                    "Impuesto": d.impuesto || '$ 0.00',
+                    "Total": d.total || '$ 0.00',
+                    "Dirección": d.direccion || ''
+                });
+            });
 
-        datos.push({
-            "Orden": d.orden || '',
-            "Fecha": d.fecha || '',
-            "Proveedor": d.proveedor || '',
-            "Departamento": d.departamento || '',
-            "Moneda": d.moneda || 'MXN',
-            "Subtotal": d.subtotal || '$ 0.00',
-            "Impuesto": d.impuesto || '$ 0.00',
-            "Total": d.total || '$ 0.00',
-            "Dirección": d.direccion || ''
-        });
-    });
+            const ws = XLSX.utils.json_to_sheet(datos);
 
-    const ws = XLSX.utils.json_to_sheet(datos);
+            const wb = XLSX.utils.book_new();
 
-    const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Historial OC");
 
-    XLSX.utils.book_append_sheet(wb, ws, "Historial OC");
+            XLSX.writeFile(wb, "Historial_Ordenes_Compra.xlsx");
+        }
 
-    XLSX.writeFile(wb, "Historial_Ordenes_Compra.xlsx");
-}
         window.onload = () => {
             document.getElementById('fecha').value = new Date().toISOString().split('T')[0];
+
             generarFolio();
+
             agregarFila();
         };
     </script>
 </body>
-</html>
+</html>>
