@@ -56,11 +56,30 @@
         .auth-name { font-weight: bold; text-transform: uppercase; }
         .auth-role { font-size: 13px; color: #555; }
 
-        .filters { display: flex; gap: 10px; margin-bottom: 20px; padding: 15px; background: #eee; border-radius: 5px; }
-        .btn { padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .filters { display: flex; gap: 10px; margin-bottom: 20px; padding: 15px; background: #eee; border-radius: 5px; align-items: center; flex-wrap: wrap; }
+        .btn { padding: 8px 14px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; transition: all 0.2s ease; }
+        .btn:hover { opacity: 0.85; transform: translateY(-1px); }
         .btn-add { background: #444; color: white; }
         .btn-save { background: #003087; color: white; }
         .btn-print { background: #28a745; color: white; }
+        .btn-edit { background: #f0ad4e; color: white; padding: 6px 10px; }
+        .btn-cancel { background: #dc3545; color: white; padding: 6px 10px; }
+        .btn-view { background: #17a2b8; color: white; padding: 6px 10px; }
+        .btn-sm { padding: 6px 10px; font-size: 11px; }
+
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
+        .badge-activa { background: #d4edda; color: #155724; }
+        .badge-cancelada { background: #f8d7da; color: #721c24; }
+
+        .tabla-historial { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .tabla-historial thead th { background: #003087; color: white; padding: 12px 10px; text-align: center; font-size: 12px; }
+        .tabla-historial tbody td { padding: 10px; border-bottom: 1px solid #e0e0e0; vertical-align: middle; }
+        .tabla-historial tbody tr:hover { background: #f8f9fa; }
+        .tabla-historial .acciones { display: flex; gap: 6px; justify-content: center; flex-wrap: nowrap; }
+
+        .historial-container { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .historial-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: #f8f9fa; border-bottom: 1px solid #dee2e6; }
+        .historial-header h2 { margin: 0; font-size: 18px; color: #003087; }
 
         @media print {
             @page { size: A4 portrait; margin: 10mm; }
@@ -105,7 +124,11 @@
                 </div>
             </div>
 
-            <h1 class="title">Orden de Compra</h1>
+            <h1 class="title" id="titulo-form">Orden de Compra</h1>
+
+            <div class="no-print" style="margin-bottom: 15px;">
+                <button class="btn btn-add" onclick="nuevaOrden()">Nueva Orden</button>
+            </div>
 
             <div class="info-grid">
                 <div>
@@ -188,32 +211,36 @@
         </div>
 
         <div id="tab-historial" style="display:none;">
-            <h2 class="title no-print">Historial</h2>
+            <div class="historial-container no-print">
+                <div class="historial-header">
+                    <h2>Historial de Ordenes</h2>
+                    <button class="btn btn-save" onclick="exportarExcel()">Exportar Excel</button>
+                </div>
 
-            <div class="filters no-print">
-                <input type="text" id="f-prov" placeholder="Proveedor..." oninput="cargarHistorial()" class="form-input">
+                <div class="filters" style="border-radius: 0; margin-bottom: 0;">
+                    <input type="text" id="f-prov" placeholder="Buscar proveedor..." oninput="cargarHistorial()" class="form-input" style="flex: 1; min-width: 200px;">
+                    <select id="f-estatus" onchange="cargarHistorial()" class="form-input" style="width: 150px;">
+                        <option value="">Todos</option>
+                        <option value="activa">Activas</option>
+                        <option value="cancelada">Canceladas</option>
+                    </select>
+                    <button class="btn" onclick="limpiarFiltros()">Limpiar</button>
+                </div>
 
-                <button class="btn" onclick="limpiarFiltros()">
-                    Limpiar
-                </button>
-
-                <button class="btn btn-save" onclick="exportarExcel()">
-                    📥 Exportar Excel
-                </button>
+                <table class="tabla-historial">
+                    <thead>
+                        <tr>
+                            <th style="width: 10%;">Folio</th>
+                            <th style="width: 12%;">Fecha</th>
+                            <th style="width: 22%;">Proveedor</th>
+                            <th style="width: 10%;">Estatus</th>
+                            <th style="width: 14%;">Total</th>
+                            <th style="width: 32%;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lista-historial"></tbody>
+                </table>
             </div>
-
-            <table class="no-print">
-                <thead>
-                    <tr>
-                        <th>Folio</th>
-                        <th>Fecha</th>
-                        <th>Proveedor</th>
-                        <th>Total</th>
-                        <th>Acción</th>
-                    </tr>
-                </thead>
-                <tbody id="lista-historial"></tbody>
-            </table>
         </div>
     </div>
 
@@ -314,46 +341,153 @@
                 subtotal: document.getElementById('subtotal-val').innerText,
                 impuesto: document.getElementById('impuesto-val').innerText,
                 total: document.getElementById('total-val').innerText,
-                direccion: document.getElementById('direccion').value
+                direccion: document.getElementById('direccion').value,
+                estatus: 'activa'
             };
 
-            await db.collection("ordenes").add(data);
-
-            alert("Orden Guardada");
+            if (window.editandoId) {
+                await db.collection("ordenes").doc(window.editandoId).update(data);
+                alert("Orden Actualizada");
+                window.editandoId = null;
+            } else {
+                await db.collection("ordenes").add(data);
+                alert("Orden Guardada");
+            }
 
             location.reload();
         }
 
+        async function editarOrden(docId, datos) {
+            if (datos.estatus === 'cancelada') {
+                alert("Esta orden esta cancelada y no puede ser editada.");
+                return;
+            }
+
+            window.editandoId = docId;
+
+            document.getElementById('orden').value = datos.orden;
+            document.getElementById('fecha').value = datos.fecha;
+            document.getElementById('proveedor').value = datos.proveedor;
+            document.getElementById('cotizacion').value = datos.cotizacion || '';
+            document.getElementById('departamento').value = datos.departamento;
+            document.getElementById('moneda').value = datos.moneda || 'MXN';
+            document.getElementById('direccion').value = datos.direccion;
+
+            document.getElementById('items-body').innerHTML = '';
+
+            datos.items.forEach(item => agregarFila(item));
+
+            calcular();
+
+            mostrarTab(0);
+
+            document.getElementById('titulo-form').textContent = 'Editar Orden de Compra';
+
+            window.scrollTo(0, 0);
+        }
+
+        async function cancelarOrden(docId, estatusActual) {
+            if (estatusActual === 'cancelada') {
+                alert("Esta orden ya esta cancelada.");
+                return;
+            }
+
+            if (!confirm("¿Esta seguro de cancelar esta orden? Una vez cancelada no podra editarse.")) {
+                return;
+            }
+
+            await db.collection("ordenes").doc(docId).update({
+                estatus: 'cancelada',
+                fecha_cancelacion: new Date().toISOString()
+            });
+
+            alert("Orden Cancelada");
+            cargarHistorial();
+        }
+
+        function nuevaOrden() {
+            window.editandoId = null;
+            document.getElementById('titulo-form').textContent = 'Orden de Compra';
+            document.getElementById('items-body').innerHTML = '';
+            document.getElementById('proveedor').value = '';
+            document.getElementById('cotizacion').value = '';
+            document.getElementById('departamento').value = 'REFACCIONES ORIENTE (REF)';
+            document.getElementById('direccion').value = 'Anillo periferico, 12512, Pacabtun, 97160, Merida, Merida, Yucatan, Mexico';
+            document.getElementById('fecha').value = new Date().toISOString().split('T')[0];
+            document.getElementById('moneda').value = 'MXN';
+            generarFolio();
+            agregarFila();
+            calcular();
+        }
+
         async function cargarHistorial() {
-            const fil = document.getElementById('f-prov').value.toLowerCase();
+            const filProv = document.getElementById('f-prov').value.toLowerCase();
+            const filEst = document.getElementById('f-estatus').value;
 
             const snap = await db.collection("ordenes").orderBy("orden", "desc").get();
 
             const tbody = document.getElementById('lista-historial');
-
             tbody.innerHTML = '';
 
             snap.forEach(doc => {
                 const d = doc.data();
+                const estatus = d.estatus || 'activa';
 
-                if (d.proveedor.toLowerCase().includes(fil)) {
+                const coincideProv = d.proveedor.toLowerCase().includes(filProv);
+                const coincideEst = !filEst || estatus === filEst;
+
+                if (coincideProv && coincideEst) {
                     const tr = document.createElement('tr');
+                    const badgeClass = estatus === 'activa' ? 'badge-activa' : 'badge-cancelada';
+                    const badgeText = estatus === 'activa' ? 'Activa' : 'Cancelada';
+
+                    const puedeEditar = estatus === 'activa';
+                    const docId = doc.id;
+
+                    const btnVer = document.createElement('button');
+                    btnVer.className = 'btn btn-sm btn-view';
+                    btnVer.textContent = 'Ver PDF';
+                    btnVer.onclick = () => verPDF(d);
+
+                    const btnEditar = document.createElement('button');
+                    btnEditar.className = 'btn btn-sm btn-edit';
+                    btnEditar.textContent = 'Editar';
+                    btnEditar.disabled = !puedeEditar;
+                    if (!puedeEditar) btnEditar.style.cssText = 'opacity:0.5;cursor:not-allowed;';
+                    btnEditar.onclick = () => editarOrden(docId, d);
+
+                    const btnCancelar = document.createElement('button');
+                    btnCancelar.className = 'btn btn-sm btn-cancel';
+                    btnCancelar.textContent = 'Cancelar';
+                    btnCancelar.disabled = !puedeEditar;
+                    if (!puedeEditar) btnCancelar.style.cssText = 'opacity:0.5;cursor:not-allowed;';
+                    btnCancelar.onclick = () => cancelarOrden(docId, estatus);
+
+                    const tdAcciones = document.createElement('td');
+                    const divAcciones = document.createElement('div');
+                    divAcciones.className = 'acciones';
+                    divAcciones.appendChild(btnVer);
+                    divAcciones.appendChild(btnEditar);
+                    divAcciones.appendChild(btnCancelar);
+                    tdAcciones.appendChild(divAcciones);
 
                     tr.innerHTML = `
-                        <td>${d.orden}</td>
+                        <td style="font-weight: bold; color: #003087;">${d.orden}</td>
                         <td>${d.fecha}</td>
                         <td>${d.proveedor}</td>
-                        <td>${d.total}</td>
-                        <td>
-                            <button class="btn btn-save" onclick='verPDF(${JSON.stringify(d)})'>
-                                👁️ Ver PDF
-                            </button>
-                        </td>
+                        <td class="text-center"><span class="badge ${badgeClass}">${badgeText}</span></td>
+                        <td style="font-weight: bold;">${d.total}</td>
                     `;
+
+                    tr.appendChild(tdAcciones);
 
                     tbody.appendChild(tr);
                 }
             });
+
+            if (tbody.innerHTML === '') {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#888;">No se encontraron ordenes</td></tr>';
+            }
         }
 
         function verPDF(d) {
@@ -526,7 +660,8 @@
 
                         <div style="text-align:right;">
                             <strong>Fecha:</strong> ${d.fecha}<br>
-                            <strong>Departamento:</strong> ${d.departamento}
+                            <strong>Departamento:</strong> ${d.departamento}<br>
+                            <strong>Estatus:</strong> <span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:bold;background:${(d.estatus || 'activa') === 'activa' ? '#d4edda;color:#155724' : '#f8d7da;color:#721c24'};">${(d.estatus || 'activa').toUpperCase()}</span>
                         </div>
                     </div>
 
@@ -608,11 +743,16 @@
                 t.classList.toggle('active', i === n)
             );
 
+            if (n === 0 && !window.editandoId) {
+                document.getElementById('titulo-form').textContent = 'Orden de Compra';
+            }
+
             if (n === 1) cargarHistorial();
         }
 
         function limpiarFiltros() {
             document.getElementById('f-prov').value = '';
+            document.getElementById('f-estatus').value = '';
             cargarHistorial();
         }
 
@@ -630,6 +770,7 @@
                     "Orden": d.orden || '',
                     "Fecha": d.fecha || '',
                     "Proveedor": d.proveedor || '',
+                    "Estatus": d.estatus || 'activa',
                     "N° Cotización": d.cotizacion || '',
                     "Departamento": d.departamento || '',
                     "Moneda": d.moneda || 'MXN',
